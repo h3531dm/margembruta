@@ -1,5 +1,5 @@
 """
-CONFERÊNCIA MARGEM BRUTA — TCPOS x Opera
+Conciliação de Vendas — TCPOS x Opera
 """
 
 import re
@@ -11,7 +11,7 @@ import pdfplumber
 import streamlit as st
 
 st.set_page_config(
-    page_title="Conferência Margem Bruta",
+    page_title="Conciliação de Vendas",
     page_icon="⚖️",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -43,7 +43,7 @@ header[data-testid="stHeader"] {
     min-height: 0 !important;
 }
 header[data-testid="stHeader"]::before {
-    content: "CONFERÊNCIA MARGEM BRUTA";
+    content: "CONCILIAÇÃO DE VENDAS";
     display: block;
     padding: 0.85rem 2.5rem;
     font-family: 'Source Sans 3', sans-serif;
@@ -58,6 +58,15 @@ header[data-testid="stHeader"]::before {
 header[data-testid="stHeader"] > div:last-child { display: none !important; }
 [data-testid="stToolbar"] { display: none !important; }
 
+/* ── CARD BRANCO ── */
+.gov-card {
+    background: #ffffff;
+    border-radius: 10px;
+    border: 1px solid #d4dae2;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    padding: 1.75rem 2rem;
+    margin-bottom: 1rem;
+}
 .gov-card-title {
     font-size: 1.05rem;
     font-weight: 700;
@@ -293,6 +302,45 @@ section[data-testid="stSidebar"] {
     border-radius: 6px !important;
 }
 .stCaption { color: #9098a8 !important; font-size: 0.74rem !important; }
+
+/* ── BOX TRANSACTION CODES ── */
+.tc-box {
+    background: #f8fafc;
+    border: 1px solid #d4dae2;
+    border-left: 3px solid #1c3557;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-top: 0.5rem;
+}
+.tc-title {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: #1c3557;
+    margin-bottom: 0.4rem;
+}
+.tc-codes {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    color: #5a6a7a;
+    line-height: 1.6;
+    word-break: break-all;
+}
+.tc-copy-btn {
+    display: inline-block;
+    margin-top: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    background: #ffffff;
+    border: 1px solid #d4dae2;
+    border-radius: 5px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #1c3557;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.tc-copy-btn:hover { background: #eef3f9; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -804,7 +852,7 @@ def main():
             </div>
             <div class="metric-box" style="border-top: 3px solid #64748b;">
                 <div class="metric-val" style="color:#475569;">{n_can}</div>
-                <div class="metric-lbl">Cancelado no Opera</div>
+                <div class="metric-lbl">Cancelados</div>
             </div>
         </div>
         <div class="totais-grid" style="margin-top:0.75rem;">
@@ -858,6 +906,16 @@ def main():
         )
         st.caption(f"{len(df_f)} de {len(df)} registros")
         st.markdown('</div>', unsafe_allow_html=True)
+
+        # ── TRANSACTION CODES ─────────────────────────────
+        TC_CODES = "2303,2302,2423,2301,2422,2421,2420,2320,2441,2440,2316,2436,2323,2322,2443,2321,2442,2342,2341,2340,2336,2456,2346,2345,2343,2001,2000,2356,2012,3101,2011,3100,2010,2009,2006,2004,2003,2002,2019,2017,3106,2014,3103,3102,2040,2055,3023,3022,2052,2051,2050,2065,3393,2061,3392,2060,2057,2070,2076,2075,2071,2081,2080,2085,2079,5152,2702,2701,2700,2703,2716,2603,2602,2723,2601,2722,2600,2721,2720,2607,2611,2616,2736,2623,2622,2743,2621,2742,2620,2741,2740,2636,2756,2403,2402,2401,2643,2400,2642,2641,2640,2416,2656"
+        st.markdown(f'''
+        <div class="tc-box">
+            <div class="tc-title">Transaction Codes — FIN01106</div>
+            <div class="tc-codes">{TC_CODES}</div>
+            <button class="tc-copy-btn" onclick="navigator.clipboard.writeText(\'{TC_CODES}\').then(()=>{{this.textContent='✓ Copiado';setTimeout(()=>{{this.textContent='Copiar'}},1500)}})">Copiar</button>
+        </div>
+        ''', unsafe_allow_html=True)
 
         # ── EXPORTAR ──────────────────────────────────────
         data_rel = getattr(extrair_opera, "_data", "")
