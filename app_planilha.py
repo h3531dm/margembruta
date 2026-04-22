@@ -11,7 +11,7 @@ import pdfplumber
 import streamlit as st
 
 st.set_page_config(
-    page_title="Conciliação de Vendas",
+    page_title="Conferência Margem Bruta",
     page_icon="⚖️",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -43,7 +43,7 @@ header[data-testid="stHeader"] {
     min-height: 0 !important;
 }
 header[data-testid="stHeader"]::before {
-    content: "CONCILIAÇÃO DE VENDAS";
+    content: "CONFERÊNCIA MARGEM BRUTA";
     display: block;
     padding: 0.85rem 2.5rem;
     font-family: 'Source Sans 3', sans-serif;
@@ -58,15 +58,6 @@ header[data-testid="stHeader"]::before {
 header[data-testid="stHeader"] > div:last-child { display: none !important; }
 [data-testid="stToolbar"] { display: none !important; }
 
-/* ── CARD BRANCO ── */
-.gov-card {
-    background: #ffffff;
-    border-radius: 10px;
-    border: 1px solid #d4dae2;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-    padding: 1.75rem 2rem;
-    margin-bottom: 1rem;
-}
 .gov-card-title {
     font-size: 1.05rem;
     font-weight: 700;
