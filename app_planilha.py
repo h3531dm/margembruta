@@ -59,15 +59,6 @@ header[data-testid="stHeader"]::before {
 header[data-testid="stHeader"] > div:last-child { display: none !important; }
 [data-testid="stToolbar"] { display: none !important; }
 
-/* ── CARD BRANCO ── */
-.gov-card {
-    background: #ffffff;
-    border-radius: 10px;
-    border: 1px solid #d4dae2;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-    padding: 1.75rem 2rem;
-    margin-bottom: 1rem;
-}
 .gov-card-title {
     font-size: 1.05rem;
     font-weight: 700;
