@@ -9,9 +9,10 @@ from collections import defaultdict
 import pandas as pd
 import pdfplumber
 import streamlit as st
+import streamlit.components.v1 as components
 
 st.set_page_config(
-    page_title="Conciliação de Vendas",
+    page_title="Conferência Margem Bruta",
     page_icon="⚖️",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -43,7 +44,7 @@ header[data-testid="stHeader"] {
     min-height: 0 !important;
 }
 header[data-testid="stHeader"]::before {
-    content: "CONCILIAÇÃO DE VENDAS";
+    content: "CONFERÊNCIA MARGEM BRUTA";
     display: block;
     padding: 0.85rem 2.5rem;
     font-family: 'Source Sans 3', sans-serif;
@@ -88,7 +89,7 @@ header[data-testid="stHeader"] > div:last-child { display: none !important; }
     text-align: center;
     cursor: pointer;
     margin-bottom: 6px;
-    pointer-events: none; /* visual apenas; o clique vai para o uploader abaixo */
+    pointer-events: none;
 }
 
 /* ── UPLOADER NATIVO: INVISÍVEL (branco sobre branco) ── */
@@ -102,12 +103,10 @@ header[data-testid="stHeader"] > div:last-child { display: none !important; }
     min-height: 0 !important;
 }
 
-/* Ícone da nuvem — esconde */
 [data-testid="stFileUploadDropzone"] svg {
     display: none !important;
 }
 
-/* Texto "Drag and drop file here" — substitui por português */
 [data-testid="stFileUploadDropzone"] span {
     font-size: 0 !important;
     color: transparent !important;
@@ -118,12 +117,10 @@ header[data-testid="stHeader"] > div:last-child { display: none !important; }
     color: #6b7a8d !important;
 }
 
-/* Texto "Limit 200MB" — esconde */
 [data-testid="stFileUploadDropzone"] small {
     display: none !important;
 }
 
-/* Botão "Browse files" — substitui por "Anexar arquivo" */
 [data-testid="stFileUploadDropzone"] button {
     background: #ffffff !important;
     color: transparent !important;
@@ -147,7 +144,6 @@ header[data-testid="stHeader"] > div:last-child { display: none !important; }
     white-space: nowrap;
 }
 
-/* Mantém a área clicável mas invisível */
 [data-testid="stFileUploaderDropzoneInput"] {
     opacity: 0.01 !important;
     cursor: pointer !important;
@@ -302,24 +298,6 @@ section[data-testid="stSidebar"] {
     border-radius: 6px !important;
 }
 .stCaption { color: #9098a8 !important; font-size: 0.74rem !important; }
-
-/* ── BOX TRANSACTION CODES — compacto ── */
-.tc-inline {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    margin-top: 0.75rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid #e8ecf0;
-}
-.tc-label {
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.6px;
-    text-transform: uppercase;
-    color: #9098a8;
-    white-space: nowrap;
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -338,11 +316,10 @@ def extrair_opera(file):
       desc      {nf: descrição}       — ex: "2060 Bar 1 Alimento Cafe"
       cancelados set(nf)              — NFs cujo valor líquido é zero (cancelados)
     """
-    # Acumula valores brutos (positivos e negativos separados)
-    bruto_pos  = defaultdict(float)   # soma dos lançamentos positivos
-    bruto_neg  = defaultdict(float)   # soma dos lançamentos negativos (em abs)
+    bruto_pos  = defaultdict(float)
+    bruto_neg  = defaultdict(float)
     contagem   = defaultdict(int)
-    desc       = {}                   # primeira descrição encontrada por NF
+    desc       = {}
     linhas     = []
 
     with pdfplumber.open(file) as pdf:
@@ -357,8 +334,8 @@ def extrair_opera(file):
     extrair_opera._linhas = linhas
 
     re_nf    = re.compile(r'NF:(\d+)', re.IGNORECASE)
-    re_valor = re.compile(r'(-?\d+\.\d{2})')       # captura negativos também
-    re_desc  = re.compile(r'\d{4}\s+.+')            # padrão "2060 Bar 1 ..."
+    re_valor = re.compile(r'(-?\d+\.\d{2})')
+    re_desc  = re.compile(r'\d{4}\s+.+')
 
     for i, linha in enumerate(linhas):
         if 'CHECK#' not in linha:
@@ -369,12 +346,10 @@ def extrair_opera(file):
         nf       = nfs[-1]
         anterior = linhas[i - 1]
 
-        # Extrai valor (pode ser negativo = estorno)
         vals = re_valor.findall(anterior)
         if not vals:
             continue
 
-        # Pega o primeiro valor não-zero (positivo ou negativo)
         valor = None
         for v in vals:
             f = float(v)
@@ -391,14 +366,11 @@ def extrair_opera(file):
 
         contagem[nf] += 1
 
-        # Captura descrição da linha anterior (primeira vez que aparece este NF)
         if nf not in desc:
-            # Procura padrão "DDDD Texto Texto" na linha anterior
             m = re_desc.search(anterior)
             if m:
                 desc[nf] = m.group(0).strip()
 
-    # Calcula valor líquido: positivo - negativo
     vendas     = {}
     cancelados = set()
     for nf in set(bruto_pos) | set(bruto_neg):
@@ -407,13 +379,12 @@ def extrair_opera(file):
         if abs(liquido) < 0.01:
             cancelados.add(nf)
 
-    # Extrai data do relatório — busca "From Date DD/MM/YY"
     data_relatorio = ""
     re_data = re.compile(r'From Date\s+(\d{2}/\d{2}/\d{2,4})', re.IGNORECASE)
     for linha in linhas:
         m = re_data.search(linha)
         if m:
-            raw = m.group(1)  # ex: 17/04/26
+            raw    = m.group(1)
             partes = raw.split("/")
             if len(partes) == 3:
                 d, mes, a = partes
@@ -421,10 +392,10 @@ def extrair_opera(file):
                 data_relatorio = f"{d}/{mes}/{ano}"
             break
 
-    extrair_opera._dict          = vendas
-    extrair_opera._cancelados    = cancelados
-    extrair_opera._desc          = desc
-    extrair_opera._data          = data_relatorio
+    extrair_opera._dict       = vendas
+    extrair_opera._cancelados = cancelados
+    extrair_opera._desc       = desc
+    extrair_opera._data       = data_relatorio
     return vendas, dict(contagem), desc, cancelados
 
 
@@ -435,17 +406,8 @@ def extrair_opera(file):
 def extrair_tcpos(file):
     """
     Extrai vendas do TCPOS com tratamento correto de cancelamentos.
-
-    Formatos de valor encontrados no PDF real:
-      $1,532.35      → venda normal   → positivo
-      ($1,532.35)    → cancelamento   → negativo (subtrair)
-
-    Lógica:
-      - Filtra linhas que começam com HH:MM
-      - NF = coluna índice 2
-      - Detecta se o valor está entre parênteses → negativo
-      - Calcula valor LÍQUIDO por NF (soma - estornos)
-      - NFs com líquido zero vão para cancelados_tcpos
+    $1,532.35   → positivo
+    ($1,532.35) → cancelamento (negativo)
     """
     bruto_pos = defaultdict(float)
     bruto_neg = defaultdict(float)
@@ -462,15 +424,13 @@ def extrair_tcpos(file):
 
     extrair_tcpos._linhas = linhas
 
-    re_hora         = re.compile(r'^\d{2}:\d{2}\s')
-    # Captura valor positivo: $1,532.35
-    re_valor_pos    = re.compile(r'(?<!\()\$([0-9,]+\.\d{2})(?!\))')
-    # Captura valor negativo (entre parênteses): ($1,532.35)
-    re_valor_neg    = re.compile(r'\(\$([0-9,]+\.\d{2})\)')
+    re_hora      = re.compile(r'^\d{2}:\d{2}\s')
+    re_valor_pos = re.compile(r'(?<!\()\$([0-9,]+\.\d{2})(?!\))')
+    re_valor_neg = re.compile(r'\(\$([0-9,]+\.\d{2})\)')
 
     for linha in linhas:
-        # Ignora linhas de cabeçalho, totais e rodapé
-        if any(k in linha for k in ['Total', '#', 'Time', 'NF', 'Check', 'Impresso', 'Printed', 'UNIDADE', 'Hora', 'Lojas', 'Data:', 'CUPONS']):
+        if any(k in linha for k in ['Total', '#', 'Time', 'NF', 'Check', 'Impresso',
+                                     'Printed', 'UNIDADE', 'Hora', 'Lojas', 'Data:', 'CUPONS']):
             continue
         if not re_hora.match(linha):
             continue
@@ -478,40 +438,34 @@ def extrair_tcpos(file):
         if len(partes) < 5:
             continue
 
-        nf = partes[2]
-
-        # Verifica primeiro se é cancelamento (parênteses)
+        nf    = partes[2]
         m_neg = re_valor_neg.search(linha)
         if m_neg:
             try:
-                valor = float(m_neg.group(1).replace(',', ''))
-                bruto_neg[nf] += valor
+                bruto_neg[nf] += float(m_neg.group(1).replace(',', ''))
                 continue
             except ValueError:
                 pass
 
-        # Valor positivo normal
         m_pos = re_valor_pos.search(linha)
         if m_pos:
             try:
-                valor = float(m_pos.group(1).replace(',', ''))
-                bruto_pos[nf] += valor
+                bruto_pos[nf] += float(m_pos.group(1).replace(',', ''))
             except ValueError:
                 pass
 
-    # Calcula líquido por NF
-    vendas            = {}
-    cancelados_tcpos  = set()
+    vendas           = {}
+    cancelados_tcpos = set()
     for nf in set(bruto_pos) | set(bruto_neg):
         liquido = round(bruto_pos.get(nf, 0) - bruto_neg.get(nf, 0), 2)
         vendas[nf] = liquido
         if abs(liquido) < 0.01:
             cancelados_tcpos.add(nf)
 
-    extrair_tcpos._dict            = vendas
-    extrair_tcpos._cancelados      = cancelados_tcpos
-    extrair_tcpos._bruto_pos       = dict(bruto_pos)
-    extrair_tcpos._bruto_neg       = dict(bruto_neg)
+    extrair_tcpos._dict       = vendas
+    extrair_tcpos._cancelados = cancelados_tcpos
+    extrair_tcpos._bruto_pos  = dict(bruto_pos)
+    extrair_tcpos._bruto_neg  = dict(bruto_neg)
     return vendas
 
 
@@ -521,13 +475,7 @@ def extrair_tcpos(file):
 
 def conciliar(tcpos, opera_vals, opera_cnt, opera_desc,
               opera_cancelados, tcpos_cancelados, tol=0.01):
-    """
-    Conciliação bidirecional com detecção de cancelamentos em ambos os sistemas.
-
-    NF cancelado = valor líquido zero (positivos - estornos = 0).
-    Opera e TCPOS tratados de forma simétrica.
-    """
-    rows = []
+    rows      = []
     todos_nfs = sorted(set(tcpos) | set(opera_vals))
 
     for nf in todos_nfs:
@@ -536,37 +484,27 @@ def conciliar(tcpos, opera_vals, opera_cnt, opera_desc,
         qt  = opera_cnt.get(nf, 0)
         des = opera_desc.get(nf, "")
 
-        # ── Cancelado em ambos ──
         if nf in opera_cancelados and nf in tcpos_cancelados:
-            rows.append({
-                "NF": nf, "Descrição Opera": des,
-                "Valor TCPOS": 0.0, "Valor Opera": 0.0,
-                "Diferença": 0.0, "Linhas Opera": qt,
-                "Status": "Cancelado nos dois",
-            })
+            rows.append({"NF": nf, "Descrição Opera": des,
+                         "Valor TCPOS": 0.0, "Valor Opera": 0.0,
+                         "Diferença": 0.0, "Linhas Opera": qt,
+                         "Status": "Cancelado nos dois"})
             continue
 
-        # ── Cancelado só no Opera ──
         if nf in opera_cancelados:
-            rows.append({
-                "NF": nf, "Descrição Opera": des,
-                "Valor TCPOS": vt, "Valor Opera": 0.0,
-                "Diferença": vt if vt else 0.0,
-                "Linhas Opera": qt, "Status": "Cancelado no Opera",
-            })
+            rows.append({"NF": nf, "Descrição Opera": des,
+                         "Valor TCPOS": vt, "Valor Opera": 0.0,
+                         "Diferença": vt if vt else 0.0,
+                         "Linhas Opera": qt, "Status": "Cancelado no Opera"})
             continue
 
-        # ── Cancelado só no TCPOS ──
         if nf in tcpos_cancelados:
-            rows.append({
-                "NF": nf, "Descrição Opera": des,
-                "Valor TCPOS": 0.0, "Valor Opera": vo,
-                "Diferença": -(vo or 0), "Linhas Opera": qt,
-                "Status": "Cancelado no TCPOS",
-            })
+            rows.append({"NF": nf, "Descrição Opera": des,
+                         "Valor TCPOS": 0.0, "Valor Opera": vo,
+                         "Diferença": -(vo or 0), "Linhas Opera": qt,
+                         "Status": "Cancelado no TCPOS"})
             continue
 
-        # ── Conciliação normal ──
         if vt is not None and vo is not None:
             dif    = round(vt - vo, 2)
             status = ("Split" if qt > 1 else "OK") if abs(dif) <= tol else "Divergente"
@@ -575,11 +513,9 @@ def conciliar(tcpos, opera_vals, opera_cnt, opera_desc,
         else:
             dif, status = -vo, "Só Opera"
 
-        rows.append({
-            "NF": nf, "Descrição Opera": des,
-            "Valor TCPOS": vt, "Valor Opera": vo,
-            "Diferença": dif, "Linhas Opera": qt, "Status": status,
-        })
+        rows.append({"NF": nf, "Descrição Opera": des,
+                     "Valor TCPOS": vt, "Valor Opera": vo,
+                     "Diferença": dif, "Linhas Opera": qt, "Status": status})
 
     return pd.DataFrame(rows)
 
@@ -589,17 +525,8 @@ def conciliar(tcpos, opera_vals, opera_cnt, opera_desc,
 # ─────────────────────────────────────────────────────────
 
 def gerar_excel(df, data_relatorio=""):
-    """
-    Gera Excel com:
-    - Data do relatório no topo (linha 1)
-    - Cores por status
-    - AutoFilter nativo (filtro já ativo ao abrir)
-    - Coluna Descrição Opera
-    - Coluna Status é a última (facilita filtrar)
-    """
     out = io.BytesIO()
     with pd.ExcelWriter(out, engine="openpyxl") as writer:
-        # Escreve os dados a partir da linha 3 (deixa 2 linhas para o cabeçalho)
         df.to_excel(writer, index=False, sheet_name="Conciliação", startrow=2)
         ws = writer.sheets["Conciliação"]
         from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
@@ -608,17 +535,14 @@ def gerar_excel(df, data_relatorio=""):
         num_cols = len(df.columns)
         last_col = get_column_letter(num_cols)
 
-        # ── LINHA 1: data do relatório ──────────────────────
         ws.merge_cells(f"A1:{last_col}1")
-        cel_data = ws["A1"]
-        label = f"Conciliação de Vendas — {data_relatorio}" if data_relatorio else "Conciliação de Vendas"
+        cel_data           = ws["A1"]
+        label              = f"Conferência Margem Bruta — {data_relatorio}" if data_relatorio else "Conferência Margem Bruta"
         cel_data.value     = label
         cel_data.font      = Font(bold=True, color="FFFFFF", size=12)
         cel_data.fill      = PatternFill("solid", fgColor="1C3557")
         cel_data.alignment = Alignment(horizontal="center", vertical="center")
         ws.row_dimensions[1].height = 28
-
-        # ── LINHA 2: vazia (espaçamento) ────────────────────
         ws.row_dimensions[2].height = 6
 
         cores = {
@@ -635,17 +559,14 @@ def gerar_excel(df, data_relatorio=""):
         thin = Side(style="thin", color="D1D5DB")
         brd  = Border(left=thin, right=thin, top=thin, bottom=thin)
 
-        # ── LINHA 3: cabeçalho das colunas ─────────────────
         for cell in ws[3]:
             cell.font      = Font(bold=True, color="1C3557", size=10)
             cell.fill      = PatternFill("solid", fgColor="DBEAFE")
             cell.alignment = Alignment(horizontal="center", vertical="center")
             cell.border    = brd
 
-        # Índice da coluna Status (última coluna, 0-based)
         status_col_idx = len(df.columns) - 1
 
-        # ── LINHAS DE DADOS: a partir da linha 4 ────────────
         for row in ws.iter_rows(min_row=4, max_row=ws.max_row):
             status_val = str(row[status_col_idx].value or "")
             cor  = cores.get(status_val, "FFFFFF")
@@ -655,20 +576,15 @@ def gerar_excel(df, data_relatorio=""):
                 cell.border    = brd
                 cell.alignment = Alignment(horizontal="center", vertical="center")
 
-        # Largura das colunas
         for ci, col in enumerate(ws.columns, 1):
             ml = max((len(str(c.value or "")) for c in col), default=10)
             ws.column_dimensions[get_column_letter(ci)].width = min(ml + 4, 50)
 
-        # Altura das linhas de dados
         for row in ws.iter_rows(min_row=4):
             ws.row_dimensions[row[0].row].height = 20
 
-        # ── AUTOFILTER na linha de cabeçalho (linha 3) ──────
         ws.auto_filter.ref = f"A3:{last_col}{ws.max_row}"
-
-        # Congela até a linha 3 (data + cabeçalho sempre visíveis)
-        ws.freeze_panes = "A4"
+        ws.freeze_panes    = "A4"
 
     return out.getvalue()
 
@@ -699,6 +615,9 @@ def render_diff(tt, to):
         return f'<div class="diff-box diff-warn"><div class="diff-lbl">Diferença total entre sistemas</div><div class="diff-val diff-pos">+ {s} no TCPOS</div></div>'
     return f'<div class="diff-box diff-warn"><div class="diff-lbl">Diferença total entre sistemas</div><div class="diff-val diff-neg">- {s} no Opera</div></div>'
 
+# Códigos para o relatório FIN01106
+TC_CODES = "2303,2302,2423,2301,2422,2421,2420,2320,2441,2440,2316,2436,2323,2322,2443,2321,2442,2342,2341,2340,2336,2456,2346,2345,2343,2001,2000,2356,2012,3101,2011,3100,2010,2009,2006,2004,2003,2002,2019,2017,3106,2014,3103,3102,2040,2055,3023,3022,2052,2051,2050,2065,3393,2061,3392,2060,2057,2070,2076,2075,2071,2081,2080,2085,2079,5152,2702,2701,2700,2703,2716,2603,2602,2723,2601,2722,2600,2721,2720,2607,2611,2616,2736,2623,2622,2743,2621,2742,2620,2741,2740,2636,2756,2403,2402,2401,2643,2400,2642,2641,2640,2416,2656"
+
 
 # ─────────────────────────────────────────────────────────
 # INTERFACE
@@ -723,10 +642,8 @@ def main():
         col1, col2 = st.columns(2, gap="large")
 
         with col1:
-            # Botão azul decorativo (visual)
             st.markdown('<div class="upload-btn">Relatório Fin01106 — Opera</div>',
                         unsafe_allow_html=True)
-            # Uploader real — invisível (branco sobre branco do card)
             arq_opera = st.file_uploader(
                 "opera", type="pdf", key="opera", label_visibility="collapsed"
             )
@@ -758,30 +675,29 @@ def main():
                     </div>
                 </div>""", unsafe_allow_html=True)
 
-
-        # ── TRANSACTION CODES — compacto dentro do card ──
-        import streamlit.components.v1 as components
-        components.html("""
+        # ── TRANSACTION CODES — linha discreta dentro do card ──
+        components.html(f"""
         <style>
-          .tc-row {
+          body {{ margin:0; padding:0; }}
+          .tc-row {{
             display: flex;
             align-items: center;
-            gap: 0.6rem;
-            margin-top: 0.6rem;
-            padding-top: 0.6rem;
+            gap: 0.65rem;
+            padding-top: 0.65rem;
+            margin-top: 0.5rem;
             border-top: 1px solid #e8ecf0;
             font-family: 'Source Sans 3', sans-serif;
-          }
-          .tc-lbl {
+          }}
+          .tc-lbl {{
             font-size: 0.67rem;
             font-weight: 700;
             letter-spacing: 0.6px;
             text-transform: uppercase;
             color: #9098a8;
             white-space: nowrap;
-          }
-          .tc-btn {
-            padding: 0.2rem 0.65rem;
+          }}
+          .tc-btn {{
+            padding: 0.18rem 0.65rem;
             background: #fff;
             border: 1px solid #d4dae2;
             border-radius: 5px;
@@ -791,20 +707,23 @@ def main():
             cursor: pointer;
             transition: background 0.15s;
             white-space: nowrap;
-          }
-          .tc-btn:hover { background: #eef3f9; }
+          }}
+          .tc-btn:hover {{ background: #eef3f9; }}
         </style>
         <div class="tc-row">
           <span class="tc-lbl">Transaction Codes — FIN01106</span>
-          <button class="tc-btn" onclick="
-            navigator.clipboard.writeText('2303,2302,2423,2301,2422,2421,2420,2320,2441,2440,2316,2436,2323,2322,2443,2321,2442,2342,2341,2340,2336,2456,2346,2345,2343,2001,2000,2356,2012,3101,2011,3100,2010,2009,2006,2004,2003,2002,2019,2017,3106,2014,3103,3102,2040,2055,3023,3022,2052,2051,2050,2065,3393,2061,3392,2060,2057,2070,2076,2075,2071,2081,2080,2085,2079,5152,2702,2701,2700,2703,2716,2603,2602,2723,2601,2722,2600,2721,2720,2607,2611,2616,2736,2623,2622,2743,2621,2742,2620,2741,2740,2636,2756,2403,2402,2401,2643,2400,2642,2641,2640,2416,2656').then(function(){
-              this.textContent = '✓ Copiado';
-              var btn = this;
-              setTimeout(function(){ btn.textContent = 'Copiar'; }, 1500);
-            }.bind(this));
-          ">Copiar</button>
+          <button class="tc-btn" id="tcbtn">Copiar</button>
         </div>
-        """, height=52)
+        <script>
+          document.getElementById('tcbtn').addEventListener('click', function() {{
+            var btn = this;
+            navigator.clipboard.writeText('{TC_CODES}').then(function() {{
+              btn.textContent = '✓ Copiado';
+              setTimeout(function() {{ btn.textContent = 'Copiar'; }}, 1500);
+            }});
+          }});
+        </script>
+        """, height=48)
 
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -819,10 +738,10 @@ def main():
         with st.spinner("Processando os relatórios..."):
             try:
                 opera_vals, opera_cnt, opera_desc, opera_cancel = extrair_opera(arq_opera)
-                tcpos         = extrair_tcpos(arq_tcpos)
-                cancel_tcpos  = getattr(extrair_tcpos, "_cancelados", set())
-                df            = conciliar(tcpos, opera_vals, opera_cnt, opera_desc,
-                                          opera_cancel, cancel_tcpos, tolerancia)
+                tcpos        = extrair_tcpos(arq_tcpos)
+                cancel_tcpos = getattr(extrair_tcpos, "_cancelados", set())
+                df           = conciliar(tcpos, opera_vals, opera_cnt, opera_desc,
+                                         opera_cancel, cancel_tcpos, tolerancia)
             except Exception as e:
                 st.error(f"Erro ao processar: {e}")
                 return
@@ -837,7 +756,9 @@ def main():
         n_div  = sc.get("Divergente", 0)
         n_tc   = sc.get("Só TCPOS", 0)
         n_op   = sc.get("Só Opera", 0)
-        n_can  = sc.get("Cancelado no Opera", 0) + sc.get("Cancelado no TCPOS", 0) + sc.get("Cancelado nos dois", 0)
+        n_can  = (sc.get("Cancelado no Opera", 0) +
+                  sc.get("Cancelado no TCPOS", 0) +
+                  sc.get("Cancelado nos dois", 0))
         n_prob = n_div + n_tc + n_op
         tt     = df["Valor TCPOS"].sum(skipna=True)
         to     = df["Valor Opera"].sum(skipna=True)
@@ -939,7 +860,7 @@ def main():
         st.download_button(
             "Exportar Excel",
             data=gerar_excel(df, data_relatorio=data_rel),
-            file_name="conciliacao_tcpos_opera.xlsx",
+            file_name="conferencia_margem_bruta.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
